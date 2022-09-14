@@ -20,12 +20,10 @@ import trimesh
 
 @torch.no_grad()
 def test_model(args):
-    if not os.path.exists(args.result_path):
-        os.makedirs(args.result_path)
-
+    speaker_len = 14
     #build model
-    model = Faceformer(args)
-    model.load_state_dict(torch.load(os.path.join(args.dataset, '{}.pth'.format(args.model_name))))
+    model = Faceformer(args, speaker_len)
+    model.load_state_dict(torch.load(args.model_name))
     model = model.to(torch.device(args.device))
     model.eval()
 
@@ -33,15 +31,12 @@ def test_model(args):
     with open(template_file, 'rb') as fin:
         templates = pickle.load(fin,encoding='latin1')
 
-    train_subjects_list = [i for i in args.train_subjects.split(" ")]
-
-    one_hot_labels = np.eye(len(train_subjects_list))
-    iter = train_subjects_list.index(args.condition)
-    one_hot = one_hot_labels[iter]
-    one_hot = np.reshape(one_hot,(-1,one_hot.shape[0]))
+    one_hot_labels = np.eye(speaker_len)
+    one_hot = one_hot_labels[args.choice]
+    one_hot = np.reshape(one_hot, (-1, one_hot.shape[0]))
     one_hot = torch.FloatTensor(one_hot).to(device=args.device)
 
-    temp = templates[args.subject]
+    temp = list(templates.values())[0]
              
     template = temp.reshape((-1))
     template = np.reshape(template,(-1,template.shape[0]))
@@ -57,22 +52,13 @@ def test_model(args):
 
     prediction = model.predict(audio_feature, template, one_hot)
     prediction = prediction.squeeze() # (seq_len, V*3)
-    np.save(os.path.join(args.result_path, test_name), prediction.detach().cpu().numpy())
+    render_sequence(args, prediction)
 
 # The implementation of rendering is borrowed from VOCA: https://github.com/TimoBolkart/voca/blob/master/utils/rendering.py
 def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None, z_offset=0):
-    if args.dataset == "BIWI":
-        camera_params = {'c': np.array([400, 400]),
-                         'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
-                         'f': np.array([4754.97941935 / 8, 4754.97941935 / 8])}
-    elif args.dataset == "vocaset":
-        camera_params = {'c': np.array([400, 400]),
-                         'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
-                         'f': np.array([4754.97941935 / 2, 4754.97941935 / 2])}
-    elif args.dataset == "owndata":
-        camera_params = {'c': np.array([400, 400]),
-                         'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
-                         'f': np.array([4754.97941935 / 2, 4754.97941935 / 2])}
+    camera_params = {'c': np.array([400, 400]),
+                        'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
+                        'f': np.array([4754.97941935 / 2, 4754.97941935 / 2])}
 
     frustum = {'near': 0.01, 'far': 3.0, 'height': 800, 'width': 800}
 
@@ -142,70 +128,56 @@ def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None, z_off
 
     return color[..., ::-1]
 
-def render_sequence(args):
+def render_sequence(args, prediction):
     wav_path = args.wav_path
     test_name = os.path.basename(wav_path).split(".")[0]
-    predicted_vertices_path = os.path.join(args.result_path,test_name+".npy")
-    if args.dataset == "BIWI":
-        template_file = os.path.join(args.dataset, args.render_template_path, "BIWI.ply")
-    elif args.dataset == "vocaset":
-        template_file = os.path.join(args.dataset, args.render_template_path, "FLAME_sample.ply")
-    elif args.dataset == "owndata":
-        template_file = os.path.join(args.dataset, args.render_template_path, "FLAME_sample.ply")
+    template_file = os.path.join(args.dataset, "FLAME_sample.ply")
 
     print("rendering: ", test_name)
                  
     template = Mesh(filename=template_file)
-    predicted_vertices = np.load(predicted_vertices_path)
-    predicted_vertices = np.reshape(predicted_vertices,(-1,args.vertice_dim//3,3))
+    verts = np.reshape(prediction.cpu().numpy(), (-1,args.vertice_dim//3,3))
 
     output_path = args.output_path
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
-    num_frames = predicted_vertices.shape[0]
+    num_frames = verts.shape[0]
     tmp_video_file = tempfile.NamedTemporaryFile('w', suffix='.mp4', dir=output_path)
     
     writer = cv2.VideoWriter(tmp_video_file.name, cv2.VideoWriter_fourcc(*'mp4v'), args.fps, (800, 800), True)
-    center = np.mean(predicted_vertices[0], axis=0)
+    center = np.mean(verts[0], axis=0)
 
     for i_frame in range(num_frames):
-        render_mesh = Mesh(predicted_vertices[i_frame], template.f)
+        render_mesh = Mesh(verts[i_frame], template.f)
         pred_img = render_mesh_helper(args,render_mesh, center)
         pred_img = pred_img.astype(np.uint8)
         writer.write(pred_img)
 
     writer.release()
-    file_name = test_name+"_"+args.subject+"_condition_"+args.condition
 
-    video_fname = os.path.join(output_path, file_name+'.mp4')
-    cmd = ('ffmpeg' + ' -i {0} -pix_fmt yuv420p -qscale 0 {1}'.format(
-       tmp_video_file.name, video_fname)).split()
+    video_fname = os.path.join(output_path, test_name+'.mp4')
+    cmd = ('ffmpeg' + ' -r 30 -i {0} -i {1} -pix_fmt yuv420p -qscale 0 {2}'.format(
+       tmp_video_file.name, wav_path, video_fname)).split()
     call(cmd)
 
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
-    parser.add_argument("--model_name", type=str, default="biwi")
-    parser.add_argument("--dataset", type=str, default="BIWI", help='vocaset or BIWI')
-    parser.add_argument("--fps", type=float, default=25, help='frame rate - 30 for vocaset; 25 for BIWI')
-    parser.add_argument("--feature_dim", type=int, default=128, help='64 for vocaset; 128 for BIWI')
-    parser.add_argument("--period", type=int, default=25, help='period in PPE - 30 for vocaset; 25 for BIWI')
-    parser.add_argument("--vertice_dim", type=int, default=23370*3, help='number of vertices - 5023*3 for vocaset; 23370*3 for BIWI')
+    parser.add_argument("--model_name", type=str, default="owndata/save/25_model.pth")
+    parser.add_argument("--dataset", type=str, default="owndata", help='vocaset or BIWI')
+    parser.add_argument("--fps", type=float, default=30, help='frame rate - 30 for vocaset; 25 for BIWI')
+    parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
+    parser.add_argument("--period", type=int, default=30, help='period in PPE - 30 for vocaset; 25 for BIWI')
+    parser.add_argument("--vertice_dim", type=int, default=5023*3, help='number of vertices - 5023*3 for vocaset; 23370*3 for BIWI')
     parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument("--train_subjects", type=str, default="F2 F3 F4 M3 M4 M5")
-    parser.add_argument("--test_subjects", type=str, default="F1 F5 F6 F7 F8 M1 M2 M6")
-    parser.add_argument("--output_path", type=str, default="demo/output", help='path of the rendered video sequence')
-    parser.add_argument("--wav_path", type=str, default="demo/wav/test.wav", help='path of the input audio signal')
-    parser.add_argument("--result_path", type=str, default="demo/result", help='path of the predictions')
-    parser.add_argument("--condition", type=str, default="M3", help='select a conditioning subject from train_subjects')
-    parser.add_argument("--subject", type=str, default="M1", help='select a subject from test_subjects or train_subjects')
+    parser.add_argument("--choice", type=int, default=0)
+    parser.add_argument("--output_path", type=str, default="output", help='path of the rendered video sequence')
+    parser.add_argument("--wav_path", type=str, default="wav_clips/1.wav", help='path of the input audio signal')
     parser.add_argument("--background_black", type=bool, default=True, help='whether to use black background')
     parser.add_argument("--template_path", type=str, default="templates.pkl", help='path of the personalized templates')
-    parser.add_argument("--render_template_path", type=str, default="templates", help='path of the mesh in BIWI/FLAME topology')
     args = parser.parse_args()   
 
     test_model(args)
-    render_sequence(args)
 
 if __name__=="__main__":
     main()
