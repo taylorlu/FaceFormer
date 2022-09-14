@@ -13,7 +13,7 @@ from data_loader import get_dataloaders
 from faceformer import Faceformer
 
 def trainer(args, train_loader, model, optimizer, criterion, epoch=100):
-    save_path = os.path.join(args.dataset,args.save_path)
+    save_path = args.save_path
     if os.path.exists(save_path):
         shutil.rmtree(save_path)
     os.makedirs(save_path)
@@ -50,7 +50,6 @@ def count_parameters(model):
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
     parser.add_argument("--lr", type=float, default=0.0001, help='learning rate')
-    parser.add_argument("--dataset", type=str, default="owndata", help='vocaset or BIWI')
     parser.add_argument("--exp_jaw_dim", type=int, default=53, help='number of exp jaw coeff, 50 + 3')
     parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
     parser.add_argument("--period", type=int, default=30, help='period in PPE - 30 for vocaset; 25 for BIWI')
@@ -58,7 +57,6 @@ def main():
     parser.add_argument("--gradient_accumulation_steps", type=int, default=8, help='gradient accumulation')
     parser.add_argument("--max_epoch", type=int, default=100, help='number of epochs')
     parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument("--template_file", type=str, default="templates.pkl", help='path of the personalized templates')
     parser.add_argument("--save_path", type=str, default="save", help='path of the trained models')
     parser.add_argument("--result_path", type=str, default="result", help='path to the predictions')
     args = parser.parse_args()
