@@ -56,7 +56,7 @@ class PeriodicPositionalEncoding(nn.Module):
         return self.dropout(x)
 
 class Faceformer(nn.Module):
-    def __init__(self, args):
+    def __init__(self, args, speaker_len):
         super(Faceformer, self).__init__()
         """
         audio: (batch_size, raw_wav)
@@ -79,7 +79,7 @@ class Faceformer(nn.Module):
         # motion decoder
         self.vertice_map_r = nn.Linear(args.feature_dim, args.vertice_dim)
         # style embedding
-        self.obj_vector = nn.Linear(len(args.train_subjects.split()), args.feature_dim, bias=False)
+        self.obj_vector = nn.Linear(speaker_len, args.feature_dim, bias=False)
         self.device = args.device
         nn.init.constant_(self.vertice_map_r.weight, 0)
         nn.init.constant_(self.vertice_map_r.bias, 0)
