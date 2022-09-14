@@ -139,8 +139,8 @@ class Faceformer(nn.Module):
             tgt_mask = self.biased_mask[:, :exp_jaw_input.shape[1], :exp_jaw_input.shape[1]].clone().detach().to(device=self.device)
             memory_mask = enc_dec_mask(self.device, exp_jaw_input.shape[1], hidden_states.shape[1])
             exp_jaw_out = self.transformer_decoder(exp_jaw_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
-            exp_jaw_out = self.vertice_map_r(exp_jaw_out)
-            new_output = self.vertice_map(exp_jaw_out[:,-1,:]).unsqueeze(1)
+            exp_jaw_out = self.exp_jaw_map_r(exp_jaw_out)
+            new_output = self.exp_jaw_map(exp_jaw_out[:,-1,:]).unsqueeze(1)
             new_output = new_output + style_emb
             exp_jaw_emb = torch.cat((exp_jaw_emb, new_output), 1)
 
