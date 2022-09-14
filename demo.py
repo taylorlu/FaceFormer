@@ -150,7 +150,9 @@ def render_sequence(args):
         template_file = os.path.join(args.dataset, args.render_template_path, "BIWI.ply")
     elif args.dataset == "vocaset":
         template_file = os.path.join(args.dataset, args.render_template_path, "FLAME_sample.ply")
-         
+    elif args.dataset == "owndata":
+        template_file = os.path.join(args.dataset, args.render_template_path, "FLAME_sample.ply")
+
     print("rendering: ", test_name)
                  
     template = Mesh(filename=template_file)
