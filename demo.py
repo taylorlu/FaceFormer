@@ -179,9 +179,9 @@ def main():
     parser.add_argument("--vertice_dim", type=int, default=5023*3, help='number of vertices - 5023*3 for vocaset; 23370*3 for BIWI')
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--choice", type=int, default=0)
-    parser.add_argument("--output_path", type=str, default="demo/output", help='path of the rendered video sequence')
+    parser.add_argument("--output_path", type=str, default="output", help='path of the rendered video sequence')
     parser.add_argument("--wav_path", type=str, default="wav_clips/1.wav", help='path of the input audio signal')
-    parser.add_argument("--result_path", type=str, default="demo/result", help='path of the predictions')
+    parser.add_argument("--result_path", type=str, default="result", help='path of the predictions')
     parser.add_argument("--background_black", type=bool, default=True, help='whether to use black background')
     args = parser.parse_args()   
 
