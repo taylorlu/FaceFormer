@@ -13,7 +13,7 @@ import torch.nn.functional as F
 import cv2
 import tempfile
 from subprocess import call
-os.environ['PYOPENGL_PLATFORM'] = 'osmesa' # egl
+os.environ['PYOPENGL_PLATFORM'] = 'egl' # egl
 import pyrender
 from psbody.mesh import Mesh
 import trimesh
@@ -69,6 +69,10 @@ def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None, z_off
         camera_params = {'c': np.array([400, 400]),
                          'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
                          'f': np.array([4754.97941935 / 2, 4754.97941935 / 2])}
+    elif args.dataset == "owndata":
+        camera_params = {'c': np.array([400, 400]),
+                         'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
+                         'f': np.array([4754.97941935 / 2, 4754.97941935 / 2])}
 
     frustum = {'near': 0.01, 'far': 3.0, 'height': 800, 'width': 800}
 
@@ -119,11 +123,11 @@ def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None, z_off
     light_pose[:3,3] = cv2.Rodrigues(np.array([angle, 0, 0]))[0].dot(pos)
     scene.add(light, pose=light_pose.copy())
 
-    light_pose[:3,3] =  cv2.Rodrigues(np.array([-angle, 0, 0]))[0].dot(pos)
-    scene.add(light, pose=light_pose.copy())
+    # light_pose[:3,3] =  cv2.Rodrigues(np.array([-angle, 0, 0]))[0].dot(pos)
+    # scene.add(light, pose=light_pose.copy())
 
-    light_pose[:3,3] = cv2.Rodrigues(np.array([0, -angle, 0]))[0].dot(pos)
-    scene.add(light, pose=light_pose.copy())
+    # light_pose[:3,3] = cv2.Rodrigues(np.array([0, -angle, 0]))[0].dot(pos)
+    # scene.add(light, pose=light_pose.copy())
 
     light_pose[:3,3] = cv2.Rodrigues(np.array([0, angle, 0]))[0].dot(pos)
     scene.add(light, pose=light_pose.copy())
