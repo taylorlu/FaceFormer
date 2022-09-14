@@ -13,7 +13,7 @@ from data_loader import get_dataloaders
 from faceformer import Faceformer
 
 def trainer(args, train_loader, model, optimizer, criterion, epoch=100):
-    save_path = os.path.join(args.dataset,args.save_path)
+    save_path = args.save_path
     os.makedirs(save_path, exist_ok=True)
 
     iteration = 0
