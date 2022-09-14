@@ -85,7 +85,6 @@ class Faceformer(nn.Module):
     def forward(self, audio, exp_jaw, one_hot, criterion, teacher_forcing=True):
         # tgt_mask: :math:`(T, T)`.
         # memory_mask: :math:`(T, S)`.
-        template = template.unsqueeze(1) # (1,1, V*3)
         obj_embedding = self.obj_vector(one_hot)#(1, feature_dim)
         frame_num = exp_jaw.shape[1]
         hidden_states = self.audio_encoder(audio, frame_num=frame_num).last_hidden_state
