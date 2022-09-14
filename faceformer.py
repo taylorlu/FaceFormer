@@ -33,15 +33,8 @@ def init_biased_mask(n_head, max_seq_len, period):
 # Alignment Bias
 def enc_dec_mask(device, dataset, T, S):
     mask = torch.ones(T, S)
-    if dataset == "BIWI":
-        for i in range(T):
-            mask[i, i*2:i*2+2] = 0
-    elif dataset == "vocaset":
-        for i in range(T):
-            mask[i, i] = 0
-    elif dataset == "owndata":
-        for i in range(T):
-            mask[i, i] = 0
+    for i in range(T):
+        mask[i, i] = 0
     return (mask==1).to(device=device)
 
 # Periodic Positional Encoding
@@ -98,10 +91,6 @@ class Faceformer(nn.Module):
         obj_embedding = self.obj_vector(one_hot)#(1, feature_dim)
         frame_num = vertice.shape[1]
         hidden_states = self.audio_encoder(audio, self.dataset, frame_num=frame_num).last_hidden_state
-        if self.dataset == "BIWI":
-            if hidden_states.shape[1]<frame_num*2:
-                vertice = vertice[:, :hidden_states.shape[1]//2]
-                frame_num = hidden_states.shape[1]//2
         hidden_states = self.audio_feature_map(hidden_states)
 
         if teacher_forcing:
@@ -141,12 +130,7 @@ class Faceformer(nn.Module):
         template = template.unsqueeze(1) # (1,1, V*3)
         obj_embedding = self.obj_vector(one_hot)
         hidden_states = self.audio_encoder(audio, self.dataset).last_hidden_state
-        if self.dataset == "BIWI":
-            frame_num = hidden_states.shape[1]//2
-        elif self.dataset == "vocaset":
-            frame_num = hidden_states.shape[1]
-        elif self.dataset == "owndata":
-            frame_num = hidden_states.shape[1]
+        frame_num = hidden_states.shape[1]
         hidden_states = self.audio_feature_map(hidden_states)
 
         for i in range(frame_num):

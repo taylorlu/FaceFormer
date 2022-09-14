@@ -32,11 +32,9 @@ class Dataset(data.Dataset):
         start = random.randrange(0, vertice.shape[0] - random_len)
         audio = audio[round(start*audio.shape[0]/vertice.shape[0]): round((start+random_len)*audio.shape[0]/vertice.shape[0])]
         vertice = vertice[start: start+random_len, :]
-        if self.data_type == "train":
-            subject = "_".join(file_name.split("_")[:-1])
-            one_hot = self.one_hot_labels[self.subjects_dict["train"].index(subject)]
-        else:
-            one_hot = self.one_hot_labels
+        
+        subject = "_".join(file_name.split("_")[:-1])
+        one_hot = self.one_hot_labels[self.subjects_dict["train"].index(subject)]
         return torch.FloatTensor(audio),torch.FloatTensor(vertice), torch.FloatTensor(template), torch.FloatTensor(one_hot), file_name
 
     def __len__(self):
@@ -46,8 +44,6 @@ def read_data(args):
     print("Loading data...")
     data = defaultdict(dict)
     train_data = []
-    valid_data = []
-    test_data = []
 
     audio_path = os.path.join(args.dataset, args.wav_path)
     vertices_path = os.path.join(args.dataset, args.vertices_path)
@@ -57,6 +53,7 @@ def read_data(args):
     with open(template_file, 'rb') as fin:
         templates = pickle.load(fin,encoding='latin1')
     
+    speakers = set()
     for r, ds, fs in os.walk(audio_path):
         for f in tqdm(fs):
             if f.endswith("wav"):
@@ -66,6 +63,7 @@ def read_data(args):
                 key = f.replace("wav", "npy")
                 data[key]["audio"] = input_values
                 subject_id = "_".join(key.split("_")[:-1])
+                speakers.add(subject_id)
                 temp = templates[subject_id]
                 data[key]["name"] = f
                 data[key]["template"] = temp.reshape((-1)) 
@@ -73,48 +71,23 @@ def read_data(args):
                 if not os.path.exists(vertice_path):
                     del data[key]
                 else:
-                    if args.dataset == "vocaset":
-                        data[key]["vertice"] = np.load(vertice_path,allow_pickle=True)[::2,:]#due to the memory limit
-                    elif args.dataset == "BIWI":
-                        data[key]["vertice"] = np.load(vertice_path,allow_pickle=True)
-                    elif args.dataset == "owndata":
-                        data[key]["vertice"] = np.load(vertice_path,allow_pickle=True)
+                    data[key]["vertice"] = np.load(vertice_path,allow_pickle=True)
 
     subjects_dict = {}
-    subjects_dict["train"] = [i for i in args.train_subjects.split(" ")]
-    subjects_dict["val"] = [i for i in args.val_subjects.split(" ")]
-    subjects_dict["test"] = [i for i in args.test_subjects.split(" ")]
+    subjects_dict["train"] = speakers
 
-    splits = {'vocaset':{'train':range(1,41),'val':range(21,41),'test':range(21,41)},
-     'BIWI':{'train':range(1,33),'val':range(33,37),'test':range(37,41)},
-     'owndata':{'train':range(0,10),'val':range(0,1),'test':range(0,1)}}
-   
     for k, v in data.items():
-        subject_id = "_".join(k.split("_")[:-1])
-        if(args.dataset == "owndata"):
-            sentence_id = int(k.split(".")[0][-1:])
-        else:
-            sentence_id = int(k.split(".")[0][-2:])
-        if subject_id in subjects_dict["train"] and sentence_id in splits[args.dataset]['train']:
-            train_data.append(v)
-        if subject_id in subjects_dict["val"] and sentence_id in splits[args.dataset]['val']:
-            valid_data.append(v)
-        if subject_id in subjects_dict["test"] and sentence_id in splits[args.dataset]['test']:
-            test_data.append(v)
+        train_data.append(v)
 
-    print(len(train_data), len(valid_data), len(test_data))
-    return train_data, valid_data, test_data, subjects_dict
+    print(len(train_data))
+    return train_data, subjects_dict
 
 def get_dataloaders(args):
     dataset = {}
-    train_data, valid_data, test_data, subjects_dict = read_data(args)
+    train_data, subjects_dict = read_data(args)
     train_data = Dataset(train_data,subjects_dict,"train")
     dataset["train"] = data.DataLoader(dataset=train_data, batch_size=1, shuffle=True)
-    valid_data = Dataset(valid_data,subjects_dict,"val")
-    dataset["valid"] = data.DataLoader(dataset=valid_data, batch_size=1, shuffle=False)
-    test_data = Dataset(test_data,subjects_dict,"test")
-    dataset["test"] = data.DataLoader(dataset=test_data, batch_size=1, shuffle=False)
-    return dataset
+    return dataset, len(subjects_dict["train"])
 
 if __name__ == "__main__":
     get_dataloaders()
