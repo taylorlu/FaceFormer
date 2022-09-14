@@ -32,7 +32,7 @@ class Dataset(data.Dataset):
         start = random.randrange(0, vertice.shape[0] - random_len)
         audio = audio[round(start*audio.shape[0]/vertice.shape[0]): round((start+random_len)*audio.shape[0]/vertice.shape[0])]
         vertice = vertice[start: start+random_len, :]
-        
+
         subject = "_".join(file_name.split("_")[:-1])
         one_hot = self.one_hot_labels[self.subjects_dict["train"].index(subject)]
         return torch.FloatTensor(audio),torch.FloatTensor(vertice), torch.FloatTensor(template), torch.FloatTensor(one_hot), file_name
@@ -74,7 +74,7 @@ def read_data(args):
                     data[key]["vertice"] = np.load(vertice_path,allow_pickle=True)
 
     subjects_dict = {}
-    subjects_dict["train"] = speakers
+    subjects_dict["train"] = list(speakers)
 
     for k, v in data.items():
         train_data.append(v)
