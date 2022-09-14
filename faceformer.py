@@ -39,11 +39,14 @@ def enc_dec_mask(device, dataset, T, S):
     elif dataset == "vocaset":
         for i in range(T):
             mask[i, i] = 0
+    elif dataset == "owndata":
+        for i in range(T):
+            mask[i, i] = 0
     return (mask==1).to(device=device)
 
 # Periodic Positional Encoding
 class PeriodicPositionalEncoding(nn.Module):
-    def __init__(self, d_model, dropout=0.1, period=25, max_seq_len=600):
+    def __init__(self, d_model, dropout=0.1, period=30, max_seq_len=600):
         super(PeriodicPositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=dropout)
         pe = torch.zeros(period, d_model)
@@ -141,6 +144,8 @@ class Faceformer(nn.Module):
         if self.dataset == "BIWI":
             frame_num = hidden_states.shape[1]//2
         elif self.dataset == "vocaset":
+            frame_num = hidden_states.shape[1]
+        elif self.dataset == "owndata":
             frame_num = hidden_states.shape[1]
         hidden_states = self.audio_feature_map(hidden_states)
 

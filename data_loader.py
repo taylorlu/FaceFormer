@@ -9,6 +9,7 @@ from tqdm import tqdm
 import random,math
 from transformers import Wav2Vec2FeatureExtractor,Wav2Vec2Processor
 import librosa    
+import random
 
 class Dataset(data.Dataset):
     """Custom data.Dataset compatible with data.DataLoader."""
@@ -26,6 +27,11 @@ class Dataset(data.Dataset):
         audio = self.data[index]["audio"]
         vertice = self.data[index]["vertice"]
         template = self.data[index]["template"]
+
+        random_len = random.randrange(30 * 2, min(600, vertice.shape[0] - 30*2))
+        start = random.randrange(0, vertice.shape[0] - random_len)
+        audio = audio[round(start*audio.shape[0]/vertice.shape[0]): round((start+random_len)*audio.shape[0]/vertice.shape[0])]
+        vertice = vertice[start: start+random_len, :]
         if self.data_type == "train":
             subject = "_".join(file_name.split("_")[:-1])
             one_hot = self.one_hot_labels[self.subjects_dict["train"].index(subject)]
@@ -71,6 +77,8 @@ def read_data(args):
                         data[key]["vertice"] = np.load(vertice_path,allow_pickle=True)[::2,:]#due to the memory limit
                     elif args.dataset == "BIWI":
                         data[key]["vertice"] = np.load(vertice_path,allow_pickle=True)
+                    elif args.dataset == "owndata":
+                        data[key]["vertice"] = np.load(vertice_path,allow_pickle=True)
 
     subjects_dict = {}
     subjects_dict["train"] = [i for i in args.train_subjects.split(" ")]
@@ -78,11 +86,15 @@ def read_data(args):
     subjects_dict["test"] = [i for i in args.test_subjects.split(" ")]
 
     splits = {'vocaset':{'train':range(1,41),'val':range(21,41),'test':range(21,41)},
-     'BIWI':{'train':range(1,33),'val':range(33,37),'test':range(37,41)}}
+     'BIWI':{'train':range(1,33),'val':range(33,37),'test':range(37,41)},
+     'owndata':{'train':range(0,10),'val':range(0,1),'test':range(0,1)}}
    
     for k, v in data.items():
         subject_id = "_".join(k.split("_")[:-1])
-        sentence_id = int(k.split(".")[0][-2:])
+        if(args.dataset == "owndata"):
+            sentence_id = int(k.split(".")[0][-1:])
+        else:
+            sentence_id = int(k.split(".")[0][-2:])
         if subject_id in subjects_dict["train"] and sentence_id in splits[args.dataset]['train']:
             train_data.append(v)
         if subject_id in subjects_dict["val"] and sentence_id in splits[args.dataset]['val']:
