@@ -21,9 +21,6 @@ from flame.FLAME import FLAME
 
 @torch.no_grad()
 def test_model(args):
-    if not os.path.exists(args.result_path):
-        os.makedirs(args.result_path)
-
     speaker_len = 14
     #build model
     model = Faceformer(args, speaker_len)
@@ -165,7 +162,7 @@ def render_sequence(args, prediction):
     writer.release()
 
     video_fname = os.path.join(output_path, test_name+'.mp4')
-    cmd = ('ffmpeg' + ' -r 30 -i {0} -pix_fmt yuv420p -i {1} -qscale 0 {2}'.format(
+    cmd = ('ffmpeg' + ' -r 30 -i {0} -i {1} -pix_fmt yuv420p -qscale 0 {2}'.format(
        tmp_video_file.name, wav_path, video_fname)).split()
     call(cmd)
 
@@ -181,7 +178,6 @@ def main():
     parser.add_argument("--choice", type=int, default=0)
     parser.add_argument("--output_path", type=str, default="output", help='path of the rendered video sequence')
     parser.add_argument("--wav_path", type=str, default="wav_clips/1.wav", help='path of the input audio signal')
-    parser.add_argument("--result_path", type=str, default="result", help='path of the predictions')
     parser.add_argument("--background_black", type=bool, default=True, help='whether to use black background')
     args = parser.parse_args()   
 
