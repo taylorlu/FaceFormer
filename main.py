@@ -34,7 +34,7 @@ def trainer(args, train_loader, dev_loader, model, optimizer, criterion, epoch=1
             loss = model(audio, template,  vertice, one_hot, criterion,teacher_forcing=False)
             loss.backward()
             loss_log.append(loss.item())
-            if (i+e*len(train_loader)) % args.gradient_accumulation_steps==0:
+            if iteration % args.gradient_accumulation_steps==0:
                 optimizer.step()
                 optimizer.zero_grad()
 
