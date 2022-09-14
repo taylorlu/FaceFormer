@@ -5,7 +5,7 @@ import numpy as np
 import shutil, pickle
 
 flame_model_path = os.path.join('models', 'generic_model-2020.pkl')
-flame_lmk_embedding_path = os.path.join('models', 'flame_static_embedding.pkl.pkl')
+flame_lmk_embedding_path = os.path.join('models', 'flame_static_embedding.pkl')
 flame = FLAME(flame_model_path, flame_lmk_embedding_path).to(torch.device("cuda"))
 
 prediction = torch.tensor(np.zeros([1, 53])).to(device="cuda")
