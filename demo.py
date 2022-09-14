@@ -165,8 +165,8 @@ def render_sequence(args, prediction):
     writer.release()
 
     video_fname = os.path.join(output_path, test_name+'.mp4')
-    cmd = ('ffmpeg' + ' -i {0} -pix_fmt yuv420p -qscale 0 {1}'.format(
-       tmp_video_file.name, video_fname)).split()
+    cmd = ('ffmpeg' + ' -r 30 -i {0} -pix_fmt yuv420p -i {1} -qscale 0 {2}'.format(
+       tmp_video_file.name, wav_path, video_fname)).split()
     call(cmd)
 
 def main():
