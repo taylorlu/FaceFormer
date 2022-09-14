@@ -18,7 +18,7 @@ import tempfile
 import numpy as np
 from subprocess import call
 import argparse
-os.environ['PYOPENGL_PLATFORM'] = 'osmesa' #egl
+os.environ['PYOPENGL_PLATFORM'] = 'egl' #egl
 import pyrender
 import trimesh
 from psbody.mesh import Mesh
@@ -30,6 +30,10 @@ def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None,  z_of
                          'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
                          'f': np.array([4754.97941935 / 8, 4754.97941935 / 8])}
     elif args.dataset == "vocaset":
+        camera_params = {'c': np.array([400, 400]),
+                         'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
+                         'f': np.array([4754.97941935 / 2, 4754.97941935 / 2])}
+    elif args.dataset == "owndata":
         camera_params = {'c': np.array([400, 400]),
                          'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
                          'f': np.array([4754.97941935 / 2, 4754.97941935 / 2])}
@@ -149,6 +153,8 @@ def main():
             if args.dataset == "BIWI":
                 template_file = os.path.join(args.dataset, args.render_template_path, "BIWI.ply")
             elif args.dataset == "vocaset":
+                template_file = os.path.join(args.dataset, args.render_template_path, "FLAME_sample.ply")
+            elif args.dataset == "owndata":
                 template_file = os.path.join(args.dataset, args.render_template_path, "FLAME_sample.ply")
             print("rendering: ", file)
         
