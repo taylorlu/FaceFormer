@@ -93,7 +93,7 @@ class Faceformer(nn.Module):
         if teacher_forcing:
             exp_jaw_emb = obj_embedding.unsqueeze(1) # (1,1,feature_dim)
             style_emb = exp_jaw_emb  
-            template = torch.zeros([1, exp_jaw.shape[1], exp_jaw.shape[2]])
+            template = torch.zeros([1, 1, exp_jaw.shape[2]]).to(device=self.device)
             exp_jaw_input = torch.cat((template, exp_jaw[:,:-1]), 1) # shift one position
             exp_jaw_input = self.exp_jaw_map(exp_jaw_input)
             exp_jaw_input = exp_jaw_input + style_emb
