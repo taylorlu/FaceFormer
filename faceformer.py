@@ -122,7 +122,8 @@ class Faceformer(nn.Module):
                 vertice_emb = torch.cat((vertice_emb, new_output), 1)
 
         vertice_out = vertice_out + template
-        loss = torch.abs(vertice_out - vertice) # (batch, seq_len, V*3)
+        criterion = torch.nn.MSELoss(reduce=False)
+        loss = criterion(vertice_out, vertice) # (batch, seq_len, V*3)
         loss *= lip_mask.unsqueeze(0)
         loss = torch.mean(loss)
         return loss
