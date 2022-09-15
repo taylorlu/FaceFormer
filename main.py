@@ -27,8 +27,9 @@ def trainer(args, train_loader, model, optimizer, epoch=100):
 
     eye_region = set(right_eye_region).union(set(left_eye_region))
     face_except_eye_region_and_ball = list(set(face).difference(eye_region))
-    keep_mask = torch.ones([5023, 3]).to(torch.device(args.device))
+    keep_mask = torch.ones([5023, 3]).to(torch.device(args.device)) * 0.1
     keep_mask[face_except_eye_region_and_ball, :] = 10.
+    keep_mask = torch.reshape(keep_mask, (1, -1))
 
     iteration = 0
     for e in range(epoch+1):
