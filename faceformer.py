@@ -64,7 +64,10 @@ class Faceformer(nn.Module):
         vertice: (batch_size, seq_len, V*3)
         """
         self.dataset = args.dataset
-        self.audio_encoder = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base-960h")
+        if(args.facebook):
+            self.audio_encoder = Wav2Vec2Model.from_pretrained("facebook/wav2vec2-base-960h")
+        else:
+            self.audio_encoder = Wav2Vec2Model.from_pretrained("TencentGameMate/chinese-wav2vec2-base")
         # wav2vec 2.0 weights initialization
         self.audio_encoder.feature_extractor._freeze_parameters()
         self.audio_feature_map = nn.Linear(768, args.feature_dim)

@@ -47,7 +47,10 @@ def read_data(args):
 
     audio_path = os.path.join(args.dataset, args.wav_path)
     vertices_path = os.path.join(args.dataset, args.vertices_path)
-    processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+    if(args.facebook):
+        processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+    else:
+        processor = Wav2Vec2FeatureExtractor.from_pretrained('TencentGameMate/chinese-wav2vec2-base')
 
     template_file = os.path.join(args.dataset, args.template_file)
     with open(template_file, 'rb') as fin:

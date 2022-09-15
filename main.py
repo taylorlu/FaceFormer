@@ -27,7 +27,7 @@ def trainer(args, train_loader, model, optimizer, epoch=100):
 
     eye_region = set(right_eye_region).union(set(left_eye_region))
     face_except_eye_region_and_ball = list(set(face).difference(eye_region))
-    keep_mask = torch.ones([5023, 3]).to(device="cuda")
+    keep_mask = torch.ones([5023, 3]).to(torch.device(args.device))
     keep_mask[face_except_eye_region_and_ball, :] = 10.
 
     iteration = 0
@@ -75,6 +75,7 @@ def main():
     parser.add_argument("--save_path", type=str, default="save", help='path of the trained models')
     parser.add_argument("--result_path", type=str, default="result", help='path to the predictions')
     parser.add_argument("--flame_mask", type=str, default="models/FLAME_masks.pkl", help='vertices mask of flame model')
+    parser.add_argument("--facebook", type=bool, default=False, help='facebook wav2vec or tencent wav2vec, default false/tencent')
     args = parser.parse_args()
 
     #load data
@@ -85,8 +86,7 @@ def main():
     print("model parameters: ", count_parameters(model))
 
     # to cuda
-    assert torch.cuda.is_available()
-    model = model.to(torch.device("cuda"))
+    model = model.to(torch.device(args.device))
 
     # Train the model
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,model.parameters()), lr=args.lr)
