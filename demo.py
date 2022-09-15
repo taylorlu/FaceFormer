@@ -163,7 +163,7 @@ def render_sequence(args, prediction):
 
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
-    parser.add_argument("--model_name", type=str, default="owndata/save/25_model.pth")
+    parser.add_argument("--model_name", type=str, default="save/25_model.pth")
     parser.add_argument("--dataset", type=str, default="owndata", help='vocaset or BIWI')
     parser.add_argument("--fps", type=float, default=30, help='frame rate - 30 for vocaset; 25 for BIWI')
     parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
