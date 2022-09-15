@@ -18,9 +18,17 @@ def trainer(args, train_loader, model, optimizer, epoch=100):
     os.makedirs(save_path, exist_ok=True)
 
     flame_mask = pickle.load(open(args.flame_mask, 'rb'), encoding='latin1')
-    lip_mask = torch.ones([5023, 3]).to(device="cuda")
-    lip_mask[flame_mask['lips'], :] = 10.
-    lip_mask = torch.reshape(lip_mask, (1, -1))
+    # lip_mask = torch.ones([5023, 3]).to(device="cuda")
+    # lip_mask[flame_mask['lips'], :] = 10.
+    # lip_mask = torch.reshape(lip_mask, (1, -1))
+    right_eye_region = flame_mask['right_eye_region']
+    left_eye_region = flame_mask['left_eye_region']
+    face = flame_mask['face']
+
+    eye_region = set(right_eye_region).union(set(left_eye_region))
+    face_except_eye_region_and_ball = list(set(face).difference(eye_region))
+    keep_mask = torch.ones([5023, 3]).to(device="cuda")
+    keep_mask[face_except_eye_region_and_ball, :] = 10.
 
     iteration = 0
     for e in range(epoch+1):
@@ -34,7 +42,7 @@ def trainer(args, train_loader, model, optimizer, epoch=100):
             iteration += 1
             # to gpu
             audio, vertice, template, one_hot  = audio.to(device="cuda"), vertice.to(device="cuda"), template.to(device="cuda"), one_hot.to(device="cuda")
-            loss = model(audio, template,  vertice, one_hot, lip_mask, teacher_forcing=False)
+            loss = model(audio, template,  vertice, one_hot, keep_mask, teacher_forcing=False)
             loss.backward()
             loss_log.append(loss.item())
             if iteration % args.gradient_accumulation_steps==0:
