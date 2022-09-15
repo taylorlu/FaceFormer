@@ -84,7 +84,7 @@ class Faceformer(nn.Module):
         nn.init.constant_(self.vertice_map_r.weight, 0)
         nn.init.constant_(self.vertice_map_r.bias, 0)
 
-    def forward(self, audio, template, vertice, one_hot, criterion,teacher_forcing=True):
+    def forward(self, audio, template, vertice, one_hot, lip_mask, teacher_forcing=True):
         # tgt_mask: :math:`(T, T)`.
         # memory_mask: :math:`(T, S)`.
         template = template.unsqueeze(1) # (1,1, V*3)
@@ -122,7 +122,8 @@ class Faceformer(nn.Module):
                 vertice_emb = torch.cat((vertice_emb, new_output), 1)
 
         vertice_out = vertice_out + template
-        loss = criterion(vertice_out, vertice) # (batch, seq_len, V*3)
+        loss = torch.abs(vertice_out - vertice) # (batch, seq_len, V*3)
+        loss *= lip_mask.unsqueeze(0)
         loss = torch.mean(loss)
         return loss
 

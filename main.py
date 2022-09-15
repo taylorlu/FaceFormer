@@ -4,6 +4,7 @@ import argparse
 from tqdm import tqdm
 import os, shutil
 import copy
+import pickle
 
 import torch
 import torch.nn as nn
@@ -12,9 +13,14 @@ import torch.nn.functional as F
 from data_loader import get_dataloaders
 from faceformer import Faceformer
 
-def trainer(args, train_loader, model, optimizer, criterion, epoch=100):
+def trainer(args, train_loader, model, optimizer, epoch=100):
     save_path = args.save_path
     os.makedirs(save_path, exist_ok=True)
+
+    flame_mask = pickle.load(open(args.flame_mask, 'rb'), encoding='latin1')
+    lip_mask = torch.ones([5023, 3]).to(device="cuda")
+    lip_mask[flame_mask['lips'], :] = 10.
+    lip_mask = torch.reshape(lip_mask, (1, -1))
 
     iteration = 0
     for e in range(epoch+1):
@@ -28,7 +34,7 @@ def trainer(args, train_loader, model, optimizer, criterion, epoch=100):
             iteration += 1
             # to gpu
             audio, vertice, template, one_hot  = audio.to(device="cuda"), vertice.to(device="cuda"), template.to(device="cuda"), one_hot.to(device="cuda")
-            loss = model(audio, template,  vertice, one_hot, criterion,teacher_forcing=False)
+            loss = model(audio, template,  vertice, one_hot, lip_mask, teacher_forcing=False)
             loss.backward()
             loss_log.append(loss.item())
             if iteration % args.gradient_accumulation_steps==0:
@@ -60,12 +66,11 @@ def main():
     parser.add_argument("--template_file", type=str, default="templates.pkl", help='path of the personalized templates')
     parser.add_argument("--save_path", type=str, default="save", help='path of the trained models')
     parser.add_argument("--result_path", type=str, default="result", help='path to the predictions')
+    parser.add_argument("--flame_mask", type=str, default="models/FLAME_masks.pkl", help='vertices mask of flame model')
     args = parser.parse_args()
 
     #load data
     dataset, speaker_len = get_dataloaders(args)
-    # loss
-    criterion = nn.MSELoss()
 
     #build model
     model = Faceformer(args, speaker_len)
@@ -77,7 +82,7 @@ def main():
 
     # Train the model
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad,model.parameters()), lr=args.lr)
-    model = trainer(args, dataset["train"], model, optimizer, criterion, epoch=args.max_epoch)
+    model = trainer(args, dataset["train"], model, optimizer, epoch=args.max_epoch)
 
 if __name__=="__main__":
     main()
