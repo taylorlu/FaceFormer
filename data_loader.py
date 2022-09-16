@@ -43,7 +43,10 @@ def read_data(args):
     train_data = []
 
     root_path = args.dataset
-    processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+    if(args.facebook):
+        processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+    else:
+        processor = Wav2Vec2FeatureExtractor.from_pretrained('TencentGameMate/chinese-wav2vec2-base')
 
     speakers = os.listdir(root_path)
     for speaker in speakers:

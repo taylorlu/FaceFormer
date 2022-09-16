@@ -36,7 +36,10 @@ def test_model(args):
     wav_path = args.wav_path
     test_name = os.path.basename(wav_path).split(".")[0]
     speech_array, sampling_rate = librosa.load(os.path.join(wav_path), sr=16000)
-    processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+    if(args.facebook):
+        processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
+    else:
+        processor = Wav2Vec2FeatureExtractor.from_pretrained('TencentGameMate/chinese-wav2vec2-base')
     audio_feature = np.squeeze(processor(speech_array, sampling_rate=16000).input_values)
     audio_feature = np.reshape(audio_feature,(-1, audio_feature.shape[0]))
     audio_feature = torch.FloatTensor(audio_feature).to(device=args.device)
@@ -179,6 +182,7 @@ def main():
     parser.add_argument("--output_path", type=str, default="output", help='path of the rendered video sequence')
     parser.add_argument("--wav_path", type=str, default="wav_clips/1.wav", help='path of the input audio signal')
     parser.add_argument("--background_black", type=bool, default=True, help='whether to use black background')
+    parser.add_argument("--facebook", type=bool, default=False, help='facebook wav2vec or tencent wav2vec, default false/tencent')
     args = parser.parse_args()   
 
     test_model(args)

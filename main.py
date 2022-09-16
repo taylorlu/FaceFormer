@@ -58,6 +58,8 @@ def main():
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--save_path", type=str, default="save", help='path of the trained models')
     parser.add_argument("--result_path", type=str, default="result", help='path to the predictions')
+    parser.add_argument("--flame_mask", type=str, default="models/FLAME_masks.pkl", help='vertices mask of flame model')
+    parser.add_argument("--facebook", type=bool, default=False, help='facebook wav2vec or tencent wav2vec, default false/tencent')
     args = parser.parse_args()
     
     #load data
