@@ -27,7 +27,7 @@ def trainer(args, train_loader, model, optimizer, epoch=100):
 
     eye_region = set(right_eye_region).union(set(left_eye_region))
     face_except_eye_region_and_ball = list(set(face).difference(eye_region))
-    keep_mask = torch.ones([5023, 3]).to(torch.device(args.device)) * 0.1
+    keep_mask = torch.ones([5023, 3]).to(torch.device(args.device))
     keep_mask[face_except_eye_region_and_ball, :] = 10.
     keep_mask = torch.reshape(keep_mask, (1, -1))
 
@@ -70,7 +70,7 @@ def main():
     parser.add_argument("--wav_path", type=str, default= "wav", help='path of the audio signals')
     parser.add_argument("--vertices_path", type=str, default="vertices_npy", help='path of the ground truth')
     parser.add_argument("--gradient_accumulation_steps", type=int, default=8, help='gradient accumulation')
-    parser.add_argument("--max_epoch", type=int, default=100, help='number of epochs')
+    parser.add_argument("--max_epoch", type=int, default=1000, help='number of epochs')
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--template_file", type=str, default="templates.pkl", help='path of the personalized templates')
     parser.add_argument("--save_path", type=str, default="save", help='path of the trained models')
