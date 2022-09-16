@@ -53,7 +53,7 @@ def test_model(args):
     audio_feature = np.reshape(audio_feature,(-1,audio_feature.shape[0]))
     audio_feature = torch.FloatTensor(audio_feature).to(device=args.device)
 
-    prediction = model.predict(audio_feature, template, one_hot)
+    prediction, _ = model.predict(audio_feature, template, one_hot)
     prediction = prediction.squeeze() # (seq_len, V*3)
     render_sequence(args, prediction)
 
@@ -139,7 +139,7 @@ def render_sequence(args, prediction):
     print("rendering: ", test_name)
                  
     template = Mesh(filename=template_file)
-    verts = np.reshape(prediction.cpu().numpy(), (-1,args.vertice_dim//3,3))
+    verts = np.reshape(prediction.cpu().numpy(), (-1,args.vertice_dim,3))
 
     output_path = args.output_path
     if not os.path.exists(output_path):
@@ -166,12 +166,13 @@ def render_sequence(args, prediction):
 
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
-    parser.add_argument("--model_name", type=str, default="save/25_model.pth")
+    parser.add_argument("--model_name", type=str, default="save/1000_model.pth")
     parser.add_argument("--dataset", type=str, default="owndata", help='vocaset or BIWI')
     parser.add_argument("--fps", type=float, default=30, help='frame rate - 30 for vocaset; 25 for BIWI')
     parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
     parser.add_argument("--period", type=int, default=30, help='period in PPE - 30 for vocaset; 25 for BIWI')
-    parser.add_argument("--vertice_dim", type=int, default=5023*3, help='number of vertices - 5023*3 for vocaset; 23370*3 for BIWI')
+    parser.add_argument("--vertice_dim", type=int, default=5023, help='number of vertices - 5023 for vocaset')
+    parser.add_argument("--exp_jaw_dim", type=int, default=53, help='number of exp jaw coeff, 50 + 3')
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--choice", type=int, default=0)
     parser.add_argument("--output_path", type=str, default="output", help='path of the rendered video sequence')

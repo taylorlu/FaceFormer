@@ -27,7 +27,7 @@ def trainer(args, train_loader, model, optimizer, epoch=100):
 
     eye_region = set(right_eye_region).union(set(left_eye_region))
     face_except_eye_region_and_ball = list(set(face).difference(eye_region))
-    keep_mask = torch.ones([5023, 3]).to(torch.device(args.device))
+    keep_mask = torch.ones([args.vertice_dim, 3]).to(torch.device(args.device))
     keep_mask[face_except_eye_region_and_ball, :] = 10.
     keep_mask = torch.reshape(keep_mask, (1, -1))
 
@@ -64,7 +64,8 @@ def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
     parser.add_argument("--lr", type=float, default=0.0001, help='learning rate')
     parser.add_argument("--dataset", type=str, default="owndata", help='vocaset or BIWI')
-    parser.add_argument("--vertice_dim", type=int, default=5023*3, help='number of vertices - 5023*3 for vocaset; 23370*3 for BIWI')
+    parser.add_argument("--exp_jaw_dim", type=int, default=53, help='number of exp jaw coeff, 50 + 3')
+    parser.add_argument("--vertice_dim", type=int, default=5023, help='number of vertices - 5023 for vocaset')
     parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
     parser.add_argument("--period", type=int, default=30, help='period in PPE - 30 for vocaset; 25 for BIWI')
     parser.add_argument("--wav_path", type=str, default= "wav", help='path of the audio signals')

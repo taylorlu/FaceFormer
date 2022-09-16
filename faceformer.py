@@ -3,8 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import copy
-import math
+import math, os
 from wav2vec import Wav2Vec2Model
+from flame.FLAME import FLAME
 
 # Temporal Bias, inspired by ALiBi: https://github.com/ofirpress/attention_with_linear_biases
 def init_biased_mask(n_head, max_seq_len, period):
@@ -72,7 +73,7 @@ class Faceformer(nn.Module):
         self.audio_encoder.feature_extractor._freeze_parameters()
         self.audio_feature_map = nn.Linear(768, args.feature_dim)
         # motion encoder
-        self.vertice_map = nn.Linear(args.vertice_dim, args.feature_dim)
+        self.exp_jaw_map = nn.Linear(args.exp_jaw_dim, args.feature_dim)
         # periodic positional encoding 
         self.PPE = PeriodicPositionalEncoding(args.feature_dim, period = args.period)
         # temporal bias
@@ -80,12 +81,16 @@ class Faceformer(nn.Module):
         decoder_layer = nn.TransformerDecoderLayer(d_model=args.feature_dim, nhead=4, dim_feedforward=2*args.feature_dim, batch_first=True)        
         self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=1)
         # motion decoder
-        self.vertice_map_r = nn.Linear(args.feature_dim, args.vertice_dim)
+        self.exp_jaw_map_r = nn.Linear(args.feature_dim, args.exp_jaw_dim)
         # style embedding
         self.obj_vector = nn.Linear(speaker_len, args.feature_dim, bias=False)
         self.device = args.device
-        nn.init.constant_(self.vertice_map_r.weight, 0)
-        nn.init.constant_(self.vertice_map_r.bias, 0)
+        nn.init.constant_(self.exp_jaw_map_r.weight, 0)
+        nn.init.constant_(self.exp_jaw_map_r.bias, 0)
+
+        flame_model_path = os.path.join('models', 'generic_model-2020.pkl') 
+        flame_lmk_embedding_path = os.path.join('models', 'flame_static_embedding.pkl') 
+        self.flame = FLAME(flame_model_path, flame_lmk_embedding_path, n_shape=300, n_exp=50).to(torch.device(args.device))
 
     def forward(self, audio, template, vertice, one_hot, keep_mask, teacher_forcing=True):
         # tgt_mask: :math:`(T, T)`.
@@ -93,22 +98,26 @@ class Faceformer(nn.Module):
         template = template.unsqueeze(1) # (1,1, V*3)
         obj_embedding = self.obj_vector(one_hot)#(1, feature_dim)
         frame_num = vertice.shape[1]
+        batch_size = vertice.shape[0]
         hidden_states = self.audio_encoder(audio, self.dataset, frame_num=frame_num).last_hidden_state
         hidden_states = self.audio_feature_map(hidden_states)
 
         if teacher_forcing:
-            vertice_emb = obj_embedding.unsqueeze(1) # (1,1,feature_dim)
-            style_emb = vertice_emb  
-            vertice_input = torch.cat((template,vertice[:,:-1]), 1) # shift one position
-            vertice_input = vertice_input - template
-            vertice_input = self.vertice_map(vertice_input)
-            vertice_input = vertice_input + style_emb
-            vertice_input = self.PPE(vertice_input)
-            tgt_mask = self.biased_mask[:, :vertice_input.shape[1], :vertice_input.shape[1]].clone().detach().to(device=self.device)
-            memory_mask = enc_dec_mask(self.device, self.dataset, vertice_input.shape[1], hidden_states.shape[1])
-            vertice_out = self.transformer_decoder(vertice_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
-            vertice_out = self.vertice_map_r(vertice_out)
+            pass
+            # exp_jaw_emb = obj_embedding.unsqueeze(1) # (1,1,feature_dim)
+            # style_emb = exp_jaw_emb  
+            # template = torch.zeros([1, 1, exp_jaw.shape[2]]).to(device=self.device)
+            # exp_jaw_input = torch.cat((template, exp_jaw[:,:-1]), 1) # shift one position
+            # exp_jaw_input = self.exp_jaw_map(exp_jaw_input)
+            # exp_jaw_input = exp_jaw_input + style_emb
+            # exp_jaw_input = self.PPE(exp_jaw_input)
+            # tgt_mask = self.biased_mask[:, :exp_jaw_input.shape[1], :exp_jaw_input.shape[1]].clone().detach().to(device=self.device)
+            # memory_mask = enc_dec_mask(self.device, exp_jaw_input.shape[1], hidden_states.shape[1])
+            # exp_jaw_out = self.transformer_decoder(exp_jaw_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
+            # exp_jaw_out = self.exp_jaw_map_r(exp_jaw_out)
         else:
+            shape_params = torch.zeros([1, 300]).to(torch.device(vertice.device))
+            
             for i in range(frame_num):
                 if i==0:
                     vertice_emb = obj_embedding.unsqueeze(1) # (1,1,feature_dim)
@@ -118,16 +127,30 @@ class Faceformer(nn.Module):
                     vertice_input = self.PPE(vertice_emb)
                 tgt_mask = self.biased_mask[:, :vertice_input.shape[1], :vertice_input.shape[1]].clone().detach().to(device=self.device)
                 memory_mask = enc_dec_mask(self.device, self.dataset, vertice_input.shape[1], hidden_states.shape[1])
-                vertice_out = self.transformer_decoder(vertice_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
-                vertice_out = self.vertice_map_r(vertice_out)
-                new_output = self.vertice_map(vertice_out[:,-1,:]).unsqueeze(1)
+                exp_jaw_out = self.transformer_decoder(vertice_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
+                exp_jaw_out = self.exp_jaw_map_r(exp_jaw_out)
+
+                pose_params = torch.zeros([batch_size, 15]).to(torch.device(vertice.device))
+                pose_params[:, 6:9] = exp_jaw_out[:, -1, 50:]
+
+                verts, _ = self.flame(batch_size, \
+                                             shape_params=shape_params, \
+                                             expression_params=exp_jaw_out[:, -1, :50], \
+                                             pose_params=pose_params)
+                
+                if i==0:
+                    vertice_out2 = verts.reshape(batch_size, 1, -1)
+                else:
+                    vertice_out2 = torch.cat((vertice_out2, verts.reshape(batch_size, 1, -1)), 1)
+
+                new_output = self.exp_jaw_map(exp_jaw_out[:,-1,:]).unsqueeze(1)
                 new_output = new_output + style_emb
                 vertice_emb = torch.cat((vertice_emb, new_output), 1)
 
-        vertice_out2 = vertice_out + template
         criterion = torch.nn.MSELoss(reduction='none')
         loss = criterion(vertice_out2, vertice) # (batch, seq_len, V*3)
         loss *= keep_mask.unsqueeze(0)
+        vertice_out = vertice_out2 - template
         loss2 = criterion(vertice_out, torch.zeros_like(vertice_out).to(device='cuda'))
         loss += loss2 * 0.01
         loss = torch.mean(loss)
@@ -138,7 +161,9 @@ class Faceformer(nn.Module):
         obj_embedding = self.obj_vector(one_hot)
         hidden_states = self.audio_encoder(audio, self.dataset).last_hidden_state
         frame_num = hidden_states.shape[1]
+        batch_size = audio.shape[0]
         hidden_states = self.audio_feature_map(hidden_states)
+        shape_params = torch.zeros([1, 300]).to(torch.device(audio.device))
 
         for i in range(frame_num):
             if i==0:
@@ -147,14 +172,26 @@ class Faceformer(nn.Module):
                 vertice_input = self.PPE(style_emb)
             else:
                 vertice_input = self.PPE(vertice_emb)
-
             tgt_mask = self.biased_mask[:, :vertice_input.shape[1], :vertice_input.shape[1]].clone().detach().to(device=self.device)
             memory_mask = enc_dec_mask(self.device, self.dataset, vertice_input.shape[1], hidden_states.shape[1])
-            vertice_out = self.transformer_decoder(vertice_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
-            vertice_out = self.vertice_map_r(vertice_out)
-            new_output = self.vertice_map(vertice_out[:,-1,:]).unsqueeze(1)
+            exp_jaw_out = self.transformer_decoder(vertice_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
+            exp_jaw_out = self.exp_jaw_map_r(exp_jaw_out)
+
+            pose_params = torch.zeros([batch_size, 15]).to(torch.device(audio.device))
+            pose_params[:, 6:9] = exp_jaw_out[:, -1, 50:]
+
+            verts, _ = self.flame(batch_size, \
+                                            shape_params=shape_params, \
+                                            expression_params=exp_jaw_out[:, -1, :50], \
+                                            pose_params=pose_params)
+            
+            if i==0:
+                vertice_out2 = verts.reshape(batch_size, 1, -1)
+            else:
+                vertice_out2 = torch.cat((vertice_out2, verts.reshape(batch_size, 1, -1)), 1)
+
+            new_output = self.exp_jaw_map(exp_jaw_out[:,-1,:]).unsqueeze(1)
             new_output = new_output + style_emb
             vertice_emb = torch.cat((vertice_emb, new_output), 1)
 
-        vertice_out = vertice_out + template
-        return vertice_out
+        return vertice_out2, exp_jaw_out
