@@ -74,10 +74,11 @@ class Faceformer(nn.Module):
         self.audio_feature_map = nn.Linear(768, args.feature_dim)
         # motion encoder
         self.exp_jaw_map = nn.Linear(args.exp_jaw_dim, args.feature_dim)
+        self.max_seq_len = args.max_seq_len
         # periodic positional encoding 
-        self.PPE = PeriodicPositionalEncoding(args.feature_dim, period = args.period)
+        self.PPE = PeriodicPositionalEncoding(args.feature_dim, period=args.period, max_seq_len=self.max_seq_len)
         # temporal bias
-        self.biased_mask = init_biased_mask(n_head = 4, max_seq_len = 600, period=args.period)
+        self.biased_mask = init_biased_mask(n_head=4, max_seq_len=self.max_seq_len, period=args.period)
         decoder_layer = nn.TransformerDecoderLayer(d_model=args.feature_dim, nhead=4, dim_feedforward=2*args.feature_dim, batch_first=True)        
         self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=1)
         # motion decoder
@@ -171,10 +172,18 @@ class Faceformer(nn.Module):
                 style_emb = vertice_emb
                 vertice_input = self.PPE(style_emb)
             else:
-                vertice_input = self.PPE(vertice_emb)
+                if(i%self.max_seq_len==0):
+                    vertice_input = self.PPE(vertice_emb[:,-1,:].unsqueeze(1))
+                else:
+                    vertice_input = self.PPE(vertice_emb)
+
             tgt_mask = self.biased_mask[:, :vertice_input.shape[1], :vertice_input.shape[1]].clone().detach().to(device=self.device)
-            memory_mask = enc_dec_mask(self.device, self.dataset, vertice_input.shape[1], hidden_states.shape[1])
-            exp_jaw_out = self.transformer_decoder(vertice_input, hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
+            
+            if(i%self.max_seq_len==0):
+                slice_hidden_states = hidden_states[:, i:i+self.max_seq_len, :]
+
+            memory_mask = enc_dec_mask(self.device, self.dataset, vertice_input.shape[1], slice_hidden_states.shape[1])
+            exp_jaw_out = self.transformer_decoder(vertice_input, slice_hidden_states, tgt_mask=tgt_mask, memory_mask=memory_mask)
             exp_jaw_out = self.exp_jaw_map_r(exp_jaw_out)
 
             pose_params = torch.zeros([batch_size, 15]).to(torch.device(audio.device))
@@ -185,13 +194,20 @@ class Faceformer(nn.Module):
                                             expression_params=exp_jaw_out[:, -1, :50], \
                                             pose_params=pose_params)
             
-            if i==0:
-                vertice_out2 = verts.reshape(batch_size, 1, -1)
-            else:
-                vertice_out2 = torch.cat((vertice_out2, verts.reshape(batch_size, 1, -1)), 1)
-
-            new_output = self.exp_jaw_map(exp_jaw_out[:,-1,:]).unsqueeze(1)
+            new_output = self.exp_jaw_map(exp_jaw_out[:, -1, :]).unsqueeze(1)
             new_output = new_output + style_emb
-            vertice_emb = torch.cat((vertice_emb, new_output), 1)
 
-        return vertice_out2, exp_jaw_out
+            if i==0:
+                vertice_emb = torch.cat((vertice_emb, new_output), 1)
+                vertice_out2 = verts.reshape(batch_size, 1, -1)
+                exp_jaw_out2 = exp_jaw_out.clone().detach()
+            else:
+                if(i%self.max_seq_len==0):
+                    vertice_emb = torch.cat((vertice_emb[:,-1,:].unsqueeze(1), new_output), 1)
+                    exp_jaw_out = exp_jaw_out[:, -1, :].unsqueeze(1)
+                else:
+                    vertice_emb = torch.cat((vertice_emb, new_output), 1)
+                vertice_out2 = torch.cat((vertice_out2, verts.reshape(batch_size, 1, -1)), 1)
+                exp_jaw_out2 = torch.cat((exp_jaw_out2, exp_jaw_out[:, -1, :].unsqueeze(1)), 1)
+
+        return vertice_out2, exp_jaw_out2

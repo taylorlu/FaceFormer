@@ -53,9 +53,10 @@ def test_model(args):
     audio_feature = np.reshape(audio_feature,(-1,audio_feature.shape[0]))
     audio_feature = torch.FloatTensor(audio_feature).to(device=args.device)
 
-    prediction, _ = model.predict(audio_feature, template, one_hot)
-    prediction = prediction.squeeze() # (seq_len, V*3)
-    render_sequence(args, prediction)
+    vertice_out, exp_jaw_out = model.predict(audio_feature, template, one_hot)
+    vertice_out = vertice_out.squeeze() # (seq_len, V*3)
+    np.save(os.path.join(args.output_path, 'exp_jaw.npy'), vertice_out.cpu().numpy())
+    render_sequence(args, vertice_out)
 
 # The implementation of rendering is borrowed from VOCA: https://github.com/TimoBolkart/voca/blob/master/utils/rendering.py
 def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None, z_offset=0):
@@ -131,7 +132,7 @@ def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None, z_off
 
     return color[..., ::-1]
 
-def render_sequence(args, prediction):
+def render_sequence(args, vertice_out):
     wav_path = args.wav_path
     test_name = os.path.basename(wav_path).split(".")[0]
     template_file = os.path.join(args.dataset, "FLAME_sample.ply")
@@ -139,7 +140,7 @@ def render_sequence(args, prediction):
     print("rendering: ", test_name)
                  
     template = Mesh(filename=template_file)
-    verts = np.reshape(prediction.cpu().numpy(), (-1,args.vertice_dim,3))
+    verts = np.reshape(vertice_out.cpu().numpy(), (-1,args.vertice_dim,3))
 
     output_path = args.output_path
     if not os.path.exists(output_path):
@@ -171,6 +172,7 @@ def main():
     parser.add_argument("--fps", type=float, default=30, help='frame rate - 30 for vocaset; 25 for BIWI')
     parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
     parser.add_argument("--period", type=int, default=30, help='period in PPE - 30 for vocaset; 25 for BIWI')
+    parser.add_argument("--max_seq_len", type=int, default=600, help='max_seq_len')
     parser.add_argument("--vertice_dim", type=int, default=5023, help='number of vertices - 5023 for vocaset')
     parser.add_argument("--exp_jaw_dim", type=int, default=53, help='number of exp jaw coeff, 50 + 3')
     parser.add_argument("--device", type=str, default="cuda")
