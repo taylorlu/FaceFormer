@@ -55,7 +55,12 @@ def test_model(args):
 
     vertice_out, exp_jaw_out = model.predict(audio_feature, template, one_hot)
     vertice_out = vertice_out.squeeze() # (seq_len, V*3)
-    np.save(os.path.join(args.output_path, 'exp_jaw.npy'), vertice_out.cpu().numpy())
+
+    output_path = args.output_path
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    np.save(os.path.join(output_path, 'exp_jaw.npy'), exp_jaw_out.cpu().numpy())
     render_sequence(args, vertice_out)
 
 # The implementation of rendering is borrowed from VOCA: https://github.com/TimoBolkart/voca/blob/master/utils/rendering.py
@@ -143,8 +148,6 @@ def render_sequence(args, vertice_out):
     verts = np.reshape(vertice_out.cpu().numpy(), (-1,args.vertice_dim,3))
 
     output_path = args.output_path
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
 
     num_frames = verts.shape[0]
     tmp_video_file = tempfile.NamedTemporaryFile('w', suffix='.mp4', dir=output_path)
