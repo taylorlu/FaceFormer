@@ -89,11 +89,11 @@ def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None,  z_of
     light_pose[:3,3] = cv2.Rodrigues(np.array([angle, 0, 0]))[0].dot(pos)
     scene.add(light, pose=light_pose.copy())
 
-    light_pose[:3,3] =  cv2.Rodrigues(np.array([-angle, 0, 0]))[0].dot(pos)
-    scene.add(light, pose=light_pose.copy())
+    # light_pose[:3,3] =  cv2.Rodrigues(np.array([-angle, 0, 0]))[0].dot(pos)
+    # scene.add(light, pose=light_pose.copy())
 
-    light_pose[:3,3] = cv2.Rodrigues(np.array([0, -angle, 0]))[0].dot(pos)
-    scene.add(light, pose=light_pose.copy())
+    # light_pose[:3,3] = cv2.Rodrigues(np.array([0, -angle, 0]))[0].dot(pos)
+    # scene.add(light, pose=light_pose.copy())
 
     light_pose[:3,3] = cv2.Rodrigues(np.array([0, angle, 0]))[0].dot(pos)
     scene.add(light, pose=light_pose.copy())
