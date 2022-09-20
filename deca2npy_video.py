@@ -31,6 +31,7 @@ for i in range(to_len):
     to_exp_jaw[i, :50] = seq_params['exp'][round(i*args.fps/30)][0, :]
     to_exp_jaw[i, 50:] = seq_params['pose'][round(i*args.fps/30)][0, 3:]
 
+os.makedirs(args.output_path, exist_ok=True)
 np.save(os.path.join(args.output_path, 'exp_jaw.npy'), to_exp_jaw)
 
 shapes = torch.zeros([1, 300])
