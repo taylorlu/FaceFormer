@@ -133,7 +133,6 @@ def render_sequence_meshes(args,sequence_vertices, template, out_path,predicted_
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
     parser.add_argument("--dataset", type=str, default="vocaset", help='vocaset or BIWI')
-    parser.add_argument("--render_template_path", type=str, default="templates", help='path of the mesh in FLAME/BIWI topology')
     parser.add_argument('--background_black', type=bool, default=True, help='whether to use black background')
     parser.add_argument('--fps', type=int,default=30, help='frame rate - 30 for vocaset; 25 for BIWI')
     parser.add_argument("--vertice_dim", type=int, default=5023*3, help='number of vertices - 5023*3 for vocaset; 23370*3 for BIWI')
@@ -151,11 +150,11 @@ def main():
         if file.endswith("npy"):
             predicted_vertices_path = os.path.join(pred_path,file)
             if args.dataset == "BIWI":
-                template_file = os.path.join(args.dataset, args.render_template_path, "BIWI.ply")
+                template_file = "models/BIWI.ply"
             elif args.dataset == "vocaset":
-                template_file = os.path.join(args.dataset, args.render_template_path, "FLAME_sample.ply")
+                template_file = "models/FLAME_sample.ply"
             elif args.dataset == "owndata":
-                template_file = os.path.join(args.dataset, args.render_template_path, "FLAME_sample.ply")
+                template_file = "models/FLAME_sample.ply"
             print("rendering: ", file)
         
             template = Mesh(filename=template_file)

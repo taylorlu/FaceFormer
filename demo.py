@@ -135,7 +135,7 @@ def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None, z_off
 def render_sequence(args, vertice_out):
     wav_path = args.wav_path
     test_name = os.path.basename(wav_path).split(".")[0]
-    template_file = os.path.join(args.dataset, "FLAME_sample.ply")
+    template_file = os.path.join("models/FLAME_sample.ply")
 
     print("rendering: ", test_name)
                  
