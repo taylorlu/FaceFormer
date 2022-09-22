@@ -20,10 +20,10 @@ import trimesh
 
 @torch.no_grad()
 def test_model(args):
-    speaker_len = 23
+    subject_list = pickle.load(open(os.path.join(args.save_path, 'subject_list.pkl'), 'rb'))
     #build model
-    model = Faceformer(args, speaker_len)
-    model.load_state_dict(torch.load(args.model_name))
+    model = Faceformer(args, subject_list)
+    model.load_state_dict(torch.load(os.path.join(args.save_path, args.model_name)))
     model = model.to(torch.device(args.device))
     model.eval()
 
@@ -31,8 +31,8 @@ def test_model(args):
     with open(template_file, 'rb') as fin:
         templates = pickle.load(fin,encoding='latin1')
 
-    one_hot_labels = np.eye(speaker_len)
-    one_hot = one_hot_labels[args.choice]
+    one_hot_labels = np.eye(len(subject_list))
+    one_hot = one_hot_labels[subject_list.index(args.choice)]
     one_hot = np.reshape(one_hot, (-1, one_hot.shape[0]))
     one_hot = torch.FloatTensor(one_hot).to(device=args.device)
 
@@ -170,7 +170,8 @@ def render_sequence(args, vertice_out):
 
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
-    parser.add_argument("--model_name", type=str, default="save/1000_model.pth")
+    parser.add_argument("--model_name", type=str, default="1000_model.pth")
+    parser.add_argument("--save_path", type=str, default="save", help='path of the trained models')
     parser.add_argument("--dataset", type=str, default="owndata", help='vocaset or BIWI')
     parser.add_argument("--fps", type=float, default=30, help='frame rate - 30 for vocaset; 25 for BIWI')
     parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
@@ -179,7 +180,7 @@ def main():
     parser.add_argument("--vertice_dim", type=int, default=5023, help='number of vertices - 5023 for vocaset')
     parser.add_argument("--exp_jaw_dim", type=int, default=53, help='number of exp jaw coeff, 50 + 3')
     parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument("--choice", type=int, default=0)
+    parser.add_argument("--choice", type=str, default='0000')
     parser.add_argument("--output_path", type=str, default="output", help='path of the rendered video sequence')
     parser.add_argument("--wav_path", type=str, default="wav_clips/1.wav", help='path of the input audio signal')
     parser.add_argument("--background_black", type=bool, default=True, help='whether to use black background')

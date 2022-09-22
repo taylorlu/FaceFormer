@@ -90,7 +90,7 @@ def get_dataloaders(args):
     train_data, subjects_dict = read_data(args)
     train_data = Dataset(train_data,subjects_dict,"train")
     dataset["train"] = data.DataLoader(dataset=train_data, batch_size=1, shuffle=True)
-    return dataset, len(subjects_dict["train"])
+    return dataset, subjects_dict["train"]
 
 if __name__ == "__main__":
     get_dataloaders()

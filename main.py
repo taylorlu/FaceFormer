@@ -14,9 +14,6 @@ from data_loader import get_dataloaders
 from faceformer import Faceformer
 
 def trainer(args, train_loader, model, optimizer, epoch=100):
-    save_path = args.save_path
-    os.makedirs(save_path, exist_ok=True)
-
     flame_mask = pickle.load(open(args.flame_mask, 'rb'), encoding='latin1')
     # lip_mask = torch.ones([5023, 3]).to(device="cuda")
     # lip_mask[flame_mask['lips'], :] = 10.
@@ -52,8 +49,8 @@ def trainer(args, train_loader, model, optimizer, epoch=100):
 
             pbar.set_description("(Epoch {}, iteration {}) TRAIN LOSS:{:.7f}".format((e+1), iteration ,np.mean(loss_log)))
 
-        if (e > 0 and e % 25 == 0) or e == args.max_epoch:
-            torch.save(model.state_dict(), os.path.join(save_path,'{}_model.pth'.format(e)))
+        if (e > 0 and e % 50 == 0) or e == args.max_epoch:
+            torch.save(model.state_dict(), os.path.join(args.save_path,'{}_model.pth'.format(e)))
 
     return model
 
@@ -82,10 +79,13 @@ def main():
     args = parser.parse_args()
 
     #load data
-    dataset, speaker_len = get_dataloaders(args)
+    dataset, subjects_list = get_dataloaders(args)
+
+    os.makedirs(args.save_path, exist_ok=True)
+    pickle.dump(subjects_list, open(os.path.join(args.save_path, 'subject_list.pkl'), 'wb'))
 
     #build model
-    model = Faceformer(args, speaker_len)
+    model = Faceformer(args, subjects_list)
     print("model parameters: ", count_parameters(model))
 
     # to cuda
