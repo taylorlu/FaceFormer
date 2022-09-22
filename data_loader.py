@@ -13,12 +13,13 @@ import random
 
 class Dataset(data.Dataset):
     """Custom data.Dataset compatible with data.DataLoader."""
-    def __init__(self, data,subjects_dict,data_type="train"):
+    def __init__(self, data, max_seq_len, subjects_dict, data_type="train"):
         self.data = data
         self.len = len(self.data)
         self.subjects_dict = subjects_dict
         self.data_type = data_type
         self.one_hot_labels = np.eye(len(subjects_dict["train"]))
+        self.max_seq_len = max_seq_len
 
     def __getitem__(self, index):
         """Returns one data pair (source and target)."""
@@ -28,7 +29,7 @@ class Dataset(data.Dataset):
         vertice = self.data[index]["vertice"]
         template = self.data[index]["template"]
 
-        random_len = random.randrange(30 * 2, min(300, vertice.shape[0] - 30*2))
+        random_len = random.randrange(30 * 2, min(self.max_seq_len, vertice.shape[0] - 30*2))
         start = random.randrange(0, vertice.shape[0] - random_len)
         audio = audio[round(start*audio.shape[0]/vertice.shape[0]): round((start+random_len)*audio.shape[0]/vertice.shape[0])]
         vertice = vertice[start: start+random_len, :]
@@ -88,7 +89,7 @@ def read_data(args):
 def get_dataloaders(args):
     dataset = {}
     train_data, subjects_dict = read_data(args)
-    train_data = Dataset(train_data,subjects_dict,"train")
+    train_data = Dataset(train_data, args.max_seq_len, subjects_dict, "train")
     dataset["train"] = data.DataLoader(dataset=train_data, batch_size=1, shuffle=True)
     return dataset, subjects_dict["train"]
 
