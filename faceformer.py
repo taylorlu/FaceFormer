@@ -157,14 +157,34 @@ class Faceformer(nn.Module):
         loss = torch.mean(loss)
         return loss
 
-    def predict(self, audio, template, one_hot):
+    def predict(self, audio, template, one_hot, fps):
+        batch_size = audio.shape[0]
+        shape_params = torch.zeros([1, 300]).to(torch.device(audio.device))
         template = template.unsqueeze(1) # (1,1, V*3)
         obj_embedding = self.obj_vector(one_hot)
-        hidden_states = self.audio_encoder(audio, self.dataset).last_hidden_state
-        frame_num = hidden_states.shape[1]
-        batch_size = audio.shape[0]
-        hidden_states = self.audio_feature_map(hidden_states)
-        shape_params = torch.zeros([1, 300]).to(torch.device(audio.device))
+
+        hidden_states = None
+        frame_num = int(audio.shape[1]/16000*fps)
+        remain_audio = audio
+        to_cur_frame = 0
+        audio_max_len = int(self.max_seq_len*520)
+        while(remain_audio.shape[1]>0):
+            if(remain_audio.shape[1]>audio_max_len):
+                audio_clip = remain_audio[:, :audio_max_len]
+            else:
+                audio_clip = remain_audio
+            remain_audio = remain_audio[:, audio_max_len:]
+
+            cur_frame_num = round((1 - remain_audio.shape[1] / audio.shape[1]) * frame_num) - to_cur_frame
+            to_cur_frame += cur_frame_num
+
+            hidden_states_clip = self.audio_encoder(audio_clip, self.dataset, frame_num=cur_frame_num).last_hidden_state
+            hidden_states_clip = self.audio_feature_map(hidden_states_clip)
+
+            if(hidden_states is None):
+                hidden_states = hidden_states_clip
+            else:
+                hidden_states = torch.concat([hidden_states, hidden_states_clip], dim=1)
 
         for i in range(frame_num):
             if i==0:

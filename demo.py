@@ -20,7 +20,7 @@ import trimesh
 
 @torch.no_grad()
 def test_model(args):
-    speaker_len = 14
+    speaker_len = 23
     #build model
     model = Faceformer(args, speaker_len)
     model.load_state_dict(torch.load(args.model_name))
@@ -53,7 +53,7 @@ def test_model(args):
     audio_feature = np.reshape(audio_feature,(-1,audio_feature.shape[0]))
     audio_feature = torch.FloatTensor(audio_feature).to(device=args.device)
 
-    vertice_out, exp_jaw_out = model.predict(audio_feature, template, one_hot)
+    vertice_out, exp_jaw_out = model.predict(audio_feature, template, one_hot, args.fps)
     vertice_out = vertice_out.squeeze() # (seq_len, V*3)
 
     output_path = args.output_path
