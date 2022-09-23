@@ -176,7 +176,7 @@ def main():
     parser.add_argument("--fps", type=float, default=30, help='frame rate - 30 for vocaset; 25 for BIWI')
     parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
     parser.add_argument("--period", type=int, default=30, help='period in PPE - 30 for vocaset; 25 for BIWI')
-    parser.add_argument("--max_seq_len", type=int, default=600, help='max_seq_len')
+    parser.add_argument("--max_seq_len", type=int, default=300, help='max_seq_len')
     parser.add_argument("--vertice_dim", type=int, default=5023, help='number of vertices - 5023 for vocaset')
     parser.add_argument("--exp_jaw_dim", type=int, default=53, help='number of exp jaw coeff, 50 + 3')
     parser.add_argument("--device", type=str, default="cuda")

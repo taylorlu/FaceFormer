@@ -65,7 +65,7 @@ def main():
     parser.add_argument("--vertice_dim", type=int, default=5023, help='number of vertices - 5023 for vocaset')
     parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
     parser.add_argument("--period", type=int, default=30, help='period in PPE - 30 for vocaset; 25 for BIWI')
-    parser.add_argument("--max_seq_len", type=int, default=600, help='max_seq_len')
+    parser.add_argument("--max_seq_len", type=int, default=300, help='max_seq_len')
     parser.add_argument("--wav_path", type=str, default= "wav", help='path of the audio signals')
     parser.add_argument("--vertices_path", type=str, default="vertices_npy", help='path of the ground truth')
     parser.add_argument("--gradient_accumulation_steps", type=int, default=8, help='gradient accumulation')
