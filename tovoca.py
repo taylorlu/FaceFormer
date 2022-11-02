@@ -31,6 +31,8 @@ root_path = '/mnt/audio_exp_dataset'
 speakers = os.listdir(root_path)
 for speaker in speakers:
     sentences = os.listdir(os.path.join(root_path, speaker))
+    total_verts = []
+    total_count = 0
     for sentence in sentences:
         wav_path = os.path.join(root_path, speaker, sentence, 'audio.wav')
         exp_jaw = os.path.join(root_path, speaker, sentence, 'exp_jaw.npy')
@@ -50,10 +52,11 @@ for speaker in speakers:
 
         verts = np.array(verts.cpu().numpy().reshape(verts.shape[0], -1))
         print(verts.shape)
+        total_count += verts.shape[0]
+        total_verts.append(verts.sum(0))
         np.save('owndata/vertices_npy/{}_{}.npy'.format(speaker, sentence), verts)
         shutil.copy(wav_path, 'owndata/wav/{}_{}.wav'.format(speaker, sentence))
     
-    pkl[speaker] = verts[0, ...]
-    print(verts.shape)
+    pkl[speaker] = np.array(total_verts).sum(0)/total_count
 
 pickle.dump(pkl, open('owndata/templates.pkl', 'wb'))
