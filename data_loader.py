@@ -29,8 +29,12 @@ class Dataset(data.Dataset):
         vertice = self.data[index]["vertice"]
         template = self.data[index]["template"]
 
-        random_len = random.randrange(30 * 2, min(self.max_seq_len, vertice.shape[0] - 30*2))
-        start = random.randrange(0, vertice.shape[0] - random_len)
+        if(vertice.shape[0]>30*4):
+            random_len = random.randrange(30 * 2, min(self.max_seq_len, vertice.shape[0] - 30*2))
+            start = random.randrange(0, vertice.shape[0] - random_len)
+        else:
+            random_len = vertice.shape[0]
+            start = 0
         audio = audio[round(start*audio.shape[0]/vertice.shape[0]): round((start+random_len)*audio.shape[0]/vertice.shape[0])]
         vertice = vertice[start: start+random_len, :]
 
