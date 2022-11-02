@@ -3,6 +3,7 @@ import torch
 from flame.FLAME import FLAME
 import numpy as np
 import shutil, pickle
+import trimesh
 
 flame_model_path = os.path.join('models', 'generic_model-2020.pkl')
 flame_lmk_embedding_path = os.path.join('models', 'flame_static_embedding.pkl')
@@ -57,6 +58,29 @@ for speaker in speakers:
         np.save('owndata/vertices_npy/{}_{}.npy'.format(speaker, sentence), verts)
         shutil.copy(wav_path, 'owndata/wav/{}_{}.wav'.format(speaker, sentence))
     
+    pkl[speaker] = np.array(total_verts).sum(0)/total_count
+
+
+root_path = '/mnt/vocaset'
+speakers = [name for name in os.listdir(root_path) if os.path.isdir(os.path.join(root_path, name))]
+for speaker in speakers:
+    sentences = os.listdir(os.path.join(root_path, speaker, 'mesh_processed'))
+    total_verts = []
+    total_count = 0
+    for sentence in sentences:
+        wav_path = os.path.join(root_path, speaker, 'audio_processed', sentence+'.wav')
+        objs = os.listdir(os.path.join(root_path, speaker, 'mesh_processed', sentence))
+        objs.sort()
+        verts = []
+        for obj in objs:
+            verts.append(trimesh.load(os.path.join(root_path, speaker, 'mesh_processed', sentence, obj), process=False, maintain_order=True).vertices.reshape(-1))
+        verts = np.array(verts)
+        print(verts.shape)
+        total_count += verts.shape[0]
+        total_verts.append(verts.sum(0))
+        np.save('owndata/vertices_npy/{}_{}.npy'.format(speaker, sentence), verts)
+        shutil.copy(wav_path, 'owndata/wav/{}_{}.wav'.format(speaker, sentence))
+
     pkl[speaker] = np.array(total_verts).sum(0)/total_count
 
 pickle.dump(pkl, open('owndata/templates.pkl', 'wb'))
