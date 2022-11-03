@@ -93,6 +93,8 @@ def read_data(args):
 def get_dataloaders(args):
     dataset = {}
     train_data, subjects_dict = read_data(args)
+    if(os.path.exists(os.path.join(args.save_path, 'subject_list.pkl'))):
+        subjects_dict["train"] = pickle.load(open(os.path.join(args.save_path, 'subject_list.pkl'), 'rb'))
     train_data = Dataset(train_data, args.max_seq_len, subjects_dict, "train")
     dataset["train"] = data.DataLoader(dataset=train_data, batch_size=1, shuffle=True)
     return dataset, subjects_dict["train"]

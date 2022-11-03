@@ -88,6 +88,15 @@ def main():
     model = Faceformer(args, subjects_list)
     print("model parameters: ", count_parameters(model))
 
+    pths = os.listdir(args.save_path)
+    pths = [pth for pth in pths if pth.endswith('.pth')]
+    if(len(pths)!=0):
+        pths = [int(x.split('_')[0]) for x in pths]
+        pths.sort()
+        checkpoint = os.path.join(args.save_path, f'{pths[-1]}_model.pth')
+        model.load_state_dict(torch.load(checkpoint))
+        print(f'restore from {checkpoint}')
+
     # to cuda
     model = model.to(torch.device(args.device))
 
