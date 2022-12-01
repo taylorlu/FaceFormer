@@ -8,7 +8,7 @@ cuda = torch.device('cuda:0')
 
 parser = argparse.ArgumentParser(description='DECA output sequence param_dict.pkl to normed npy and render to video with audio')
 parser.add_argument("--input", type=str, help='sequence folder output by DECA')
-parser.add_argument('--fps', type=int, help='frame rate of input video')
+parser.add_argument('--fps', type=float, help='frame rate of input video')
 parser.add_argument("--wav_path", type=str, help='path of the input audio signal')
 parser.add_argument("--output_path", type=str, help='folder of the rendered video sequences and npy')
 parser.add_argument("--dataset", type=str, default="vocaset", help='vocaset')
