@@ -65,11 +65,11 @@ def test_model(args):
 
 # The implementation of rendering is borrowed from VOCA: https://github.com/TimoBolkart/voca/blob/master/utils/rendering.py
 def render_mesh_helper(args,mesh, t_center, rot=np.zeros(3), tex_img=None, z_offset=0):
-    camera_params = {'c': np.array([400, 400]),
+    camera_params = {'c': np.array([256, 256]),
                         'k': np.array([-0.19816071, 0.92822711, 0, 0, 0]),
-                        'f': np.array([4754.97941935 / 2, 4754.97941935 / 2])}
+                        'f': np.array([3254.97941935 / 2, 3254.97941935 / 2])}
 
-    frustum = {'near': 0.01, 'far': 3.0, 'height': 800, 'width': 800}
+    frustum = {'near': 0.01, 'far': 3.0, 'height': 512, 'width': 512}
 
     mesh_copy = Mesh(mesh.v, mesh.f)
     mesh_copy.v[:] = cv2.Rodrigues(rot)[0].dot((mesh_copy.v-t_center).T).T+t_center
@@ -152,7 +152,7 @@ def render_sequence(args, vertice_out):
     num_frames = verts.shape[0]
     tmp_video_file = tempfile.NamedTemporaryFile('w', suffix='.mp4', dir=output_path)
     
-    writer = cv2.VideoWriter(tmp_video_file.name, cv2.VideoWriter_fourcc(*'mp4v'), args.fps, (800, 800), True)
+    writer = cv2.VideoWriter(tmp_video_file.name, cv2.VideoWriter_fourcc(*'mp4v'), args.fps, (512, 512), True)
     center = np.mean(verts[0], axis=0)
 
     for i_frame in range(num_frames):
