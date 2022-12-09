@@ -34,6 +34,7 @@ for speaker in speakers:
     sentences = os.listdir(os.path.join(root_path, speaker))
     total_verts = []
     total_count = 0
+    torch.cuda.empty_cache()
     for sentence in sentences:
         wav_path = os.path.join(root_path, speaker, sentence, 'audio.wav')
         exp_jaw = os.path.join(root_path, speaker, sentence, 'exp_jaw.npy')
@@ -67,6 +68,7 @@ for speaker in speakers:
     sentences = os.listdir(os.path.join(root_path, speaker, 'mesh_processed'))
     total_verts = []
     total_count = 0
+    torch.cuda.empty_cache()
     for sentence in sentences:
         wav_path = os.path.join(root_path, speaker, 'audio_processed', sentence+'.wav')
         objs = os.listdir(os.path.join(root_path, speaker, 'mesh_processed', sentence))
