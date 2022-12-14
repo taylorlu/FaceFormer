@@ -73,9 +73,10 @@ def read_data(args):
                 if os.path.exists(vertice_path):
                     vertices = np.load(vertice_path,allow_pickle=True)
                     slice_len = args.max_seq_len
-                    slice_count = int(vertices.shape[0]/slice_len)
-                    if(slice_count==0):
-                        slice_count = 1
+                    if(vertices.shape[0]%slice_len==0):
+                        slice_count = int(vertices.shape[0]/slice_len)
+                    else:
+                        slice_count = int(vertices.shape[0]/slice_len) + 1
                     for idx in range(slice_count):
                         start = slice_len*idx
                         audio = speech_array[round(start*speech_array.shape[0]/vertices.shape[0]): round((start+slice_len)*speech_array.shape[0]/vertices.shape[0])]
