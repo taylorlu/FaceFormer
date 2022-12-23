@@ -29,7 +29,7 @@ def trainer(args, train_loader, model, optimizer, epoch=100):
     keep_mask = torch.reshape(keep_mask, (1, -1))
 
     iteration = 0
-    for e in range(epoch+1):
+    for e in range(epoch):
         loss_log = []
         # train
         model.train()
@@ -49,8 +49,8 @@ def trainer(args, train_loader, model, optimizer, epoch=100):
 
             pbar.set_description("(Epoch {}, iteration {}) TRAIN LOSS:{:.7f}".format((e+1), iteration ,np.mean(loss_log)))
 
-        if (e > 0 and e % 50 == 0) or e == args.max_epoch:
-            torch.save(model.state_dict(), os.path.join(args.save_path,'{}_model.pth'.format(e)))
+        if ((e+1) % 10 == 0) or e+1 == args.max_epoch:
+            torch.save(model.state_dict(), os.path.join(args.save_path,'{}_model.pth'.format(e+1)))
 
     return model
 
