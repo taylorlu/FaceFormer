@@ -30,6 +30,7 @@ def trainer(args, train_loader, model, optimizer, epoch=100):
 
     iteration = 0
     for e in range(epoch):
+        torch.cuda.empty_cache()
         loss_log = []
         # train
         model.train()
