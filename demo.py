@@ -152,35 +152,66 @@ def render_sequence(args, vertice_out):
     num_frames = verts.shape[0]
     tmp_video_file = tempfile.NamedTemporaryFile('w', suffix='.mp4', dir=output_path)
     
-    writer = cv2.VideoWriter(tmp_video_file.name, cv2.VideoWriter_fourcc(*'mp4v'), args.fps, (512, 512), True)
+    # writer = cv2.VideoWriter(tmp_video_file.name, cv2.VideoWriter_fourcc(*'mp4v'), args.fps, (512, 512), True)
     center = np.mean(verts[0], axis=0)
 
-    for i_frame in range(num_frames):
-        render_mesh = Mesh(verts[i_frame], template.f)
-        pred_img = render_mesh_helper(args,render_mesh, center)
-        pred_img = pred_img.astype(np.uint8)
-        writer.write(pred_img)
+    from multiprocessing import Process
+    import hashlib, time, random
+    def threadRun(i_frames, tmp_folder):
+        for i_frame in i_frames:
+            render_mesh = Mesh(verts[i_frame], template.f)
+            pred_img = render_mesh_helper(args,render_mesh, center)
+            pred_img = pred_img.astype(np.uint8)
+            cv2.imwrite('{}/{:04d}.jpg'.format(tmp_folder, i_frame), pred_img)
 
-    writer.release()
+    threads = []
+    thread_count = 10
+    length = num_frames//thread_count
+    m = hashlib.md5()
+    m.update(bytes(str(time.time())+str(random.random()), encoding='utf-8'))
+    tmp_folder = f'tmp_{m.hexdigest()}'
+    os.makedirs(tmp_folder,exist_ok=True)
+    for i in range(thread_count):
+        if(i==thread_count-1):
+            i_frames = list(range(length*i, num_frames))
+        else:
+            i_frames = list(range(length*i, length*(i+1)))
+        t = Process(target=threadRun, args=(i_frames, tmp_folder))
+        threads.append(t)
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
+
+    # for i_frame in range(num_frames):
+    #     render_mesh = Mesh(verts[i_frame], template.f)
+    #     pred_img = render_mesh_helper(args,render_mesh, center)
+    #     pred_img = pred_img.astype(np.uint8)
+    #     writer.write(pred_img)
+
+    # writer.release()
 
     video_fname = os.path.join(output_path, test_name+'.mp4')
-    cmd = ('ffmpeg' + ' -r 30 -i {0} -i {1} -pix_fmt yuv420p -qscale 0 {2}'.format(
-       tmp_video_file.name, wav_path, video_fname)).split()
+    cmd = ('ffmpeg' + ' -r 30 -i {}/%04d.jpg -i {} -pix_fmt yuv420p -qscale 0 {}'.format(
+       tmp_folder, wav_path, video_fname)).split()
     call(cmd)
+    shutil.rmtree(tmp_folder)
 
 def main():
     parser = argparse.ArgumentParser(description='FaceFormer: Speech-Driven 3D Facial Animation with Transformers')
-    parser.add_argument("--model_name", type=str, default="1000_model.pth")
+    parser.add_argument("--model_name", type=str, default="80_model.pth")
     parser.add_argument("--save_path", type=str, default="save", help='path of the trained models')
     parser.add_argument("--dataset", type=str, default="owndata", help='vocaset or BIWI')
     parser.add_argument("--fps", type=float, default=30, help='frame rate - 30 for vocaset; 25 for BIWI')
-    parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
+    parser.add_argument("--feature_dim", type=int, default=256, help='64 for vocaset; 128 for BIWI')
     parser.add_argument("--period", type=int, default=30, help='period in PPE - 30 for vocaset; 25 for BIWI')
     parser.add_argument("--max_seq_len", type=int, default=300, help='max_seq_len')
     parser.add_argument("--vertice_dim", type=int, default=5023, help='number of vertices - 5023 for vocaset')
     parser.add_argument("--exp_jaw_dim", type=int, default=53, help='number of exp jaw coeff, 50 + 3')
     parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument("--choice", type=str, default='0000')
+    parser.add_argument("--choice", type=str, default='FaceTalk_170809_00138_TA')
     parser.add_argument("--output_path", type=str, default="output", help='path of the rendered video sequence')
     parser.add_argument("--wav_path", type=str, default="wav_clips/1.wav", help='path of the input audio signal')
     parser.add_argument("--background_black", type=bool, default=True, help='whether to use black background')

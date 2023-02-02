@@ -40,7 +40,6 @@ def trainer(args, train_loader, model, optimizer, epoch=100):
         for i, (audio, vertice, template, one_hot, file_name) in pbar:
             iteration += 1
             # to gpu
-            audio, vertice, template, one_hot  = audio.to(device="cuda"), vertice.to(device="cuda"), template.to(device="cuda"), one_hot.to(device="cuda")
             loss = model(audio, template,  vertice, one_hot, keep_mask, teacher_forcing=False)
             loss.backward()
             loss_log.append(loss.item())
@@ -64,12 +63,12 @@ def main():
     parser.add_argument("--dataset", type=str, default="owndata", help='vocaset or BIWI')
     parser.add_argument("--exp_jaw_dim", type=int, default=53, help='number of exp jaw coeff, 50 + 3')
     parser.add_argument("--vertice_dim", type=int, default=5023, help='number of vertices - 5023 for vocaset')
-    parser.add_argument("--feature_dim", type=int, default=64, help='64 for vocaset; 128 for BIWI')
+    parser.add_argument("--feature_dim", type=int, default=256, help='64 for vocaset; 128 for BIWI')
     parser.add_argument("--period", type=int, default=30, help='period in PPE - 30 for vocaset; 25 for BIWI')
     parser.add_argument("--max_seq_len", type=int, default=300, help='max_seq_len')
     parser.add_argument("--wav_path", type=str, default= "wav", help='path of the audio signals')
     parser.add_argument("--vertices_path", type=str, default="vertices_npy", help='path of the ground truth')
-    parser.add_argument("--gradient_accumulation_steps", type=int, default=8, help='gradient accumulation')
+    parser.add_argument("--gradient_accumulation_steps", type=int, default=2, help='gradient accumulation')
     parser.add_argument("--max_epoch", type=int, default=1000, help='number of epochs')
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--template_file", type=str, default="templates.pkl", help='path of the personalized templates')
@@ -87,6 +86,21 @@ def main():
 
     #build model
     model = Faceformer(args, subjects_list)
+    print("model parameters: ", count_parameters(model))
+
+    for name, param in model.named_parameters():
+        if(name.startswith('audio_encoder.masked_spec_embed') or
+            name.startswith('audio_encoder.feature_projection.') or
+            name.startswith('audio_encoder.encoder.pos_conv_embed.') or
+            name.startswith('audio_encoder.encoder.layer_norm.') or
+            name.startswith('audio_encoder.encoder.layers.0.') or
+            name.startswith('audio_encoder.encoder.layers.1.') or
+            name.startswith('audio_encoder.encoder.layers.2.') or
+            name.startswith('audio_encoder.encoder.layers.3.') or
+            name.startswith('audio_encoder.encoder.layers.4.') or
+            name.startswith('audio_encoder.encoder.layers.5.')):
+            param.requires_grad = False
+
     print("model parameters: ", count_parameters(model))
 
     pths = os.listdir(args.save_path)

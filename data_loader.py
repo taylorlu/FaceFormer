@@ -42,7 +42,7 @@ class Dataset(data.Dataset):
 
         subject = "_".join(file_name.split("_")[:-1])
         one_hot = self.one_hot_labels[self.subjects_dict["train"].index(subject)]
-        return torch.FloatTensor(audio), torch.FloatTensor(vertice), torch.FloatTensor(template), torch.FloatTensor(one_hot), file_name
+        return torch.FloatTensor(audio).to(device="cuda"), torch.FloatTensor(vertice).to(device="cuda"), torch.FloatTensor(template).to(device="cuda"), torch.FloatTensor(one_hot).to(device="cuda"), file_name
 
     def __len__(self):
         return self.len
