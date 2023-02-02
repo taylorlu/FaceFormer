@@ -59,10 +59,10 @@ def type2save(root_path):
             print(verts.shape)
             total_count += verts.shape[0]
             total_verts.append(verts.sum(0))
-            np.save('owndata/vertices_npy/{}_{}.npy'.format(speaker, sentence), verts)
-            shutil.copy(wav_path, 'owndata/wav/{}_{}.wav'.format(speaker, sentence))
+            np.save('owndata/vertices_npy/{}_{}.npy'.format(speaker.replace('_', '-'), sentence.replace('_', '-')), verts)
+            shutil.copy(wav_path, 'owndata/wav/{}_{}.wav'.format(speaker.replace('_', '-'), sentence.replace('_', '-')))
         
-        pkl[speaker] = np.array(total_verts).sum(0)/total_count
+        pkl[speaker.replace('_', '-')] = np.array(total_verts).sum(0)/total_count
 
 type2save('/mnt/ludong/audio_exp_dataset_filter')
 
